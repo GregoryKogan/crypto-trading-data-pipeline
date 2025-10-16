@@ -18,9 +18,14 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
 
   postgres:
     image: postgres:17-alpine
@@ -34,6 +39,28 @@ services:
       - postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+  
+  producer:
+    build: ./producer
+    container_name: producer
+    depends_on:
+      - kafka
+    command: >
+      sh -c "
+        echo 'Waiting for Kafka to be ready...' &&
+        while ! nc -z kafka 9092; do
+          sleep 0.5;
+        done;
+        echo 'Kafka is ready!' &&
+        python producer.py
+      "
+    environment:
+      EXCHANGE_WS_URL: wss://stream.binance.com:9443/ws
+      CRYPTO_PAIR: btcusdt
+      KAFKA_BROKER_URL: kafka:9092
+      KAFKA_TOPIC: raw_trades
+    volumes:
+      - ./producer:/app
 
 volumes:
   postgres-data:
