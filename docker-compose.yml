@@ -62,5 +62,30 @@ services:
     volumes:
       - ./producer:/app
 
+  spark-master:
+    build: ./spark_processor
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./spark_processor:/opt/spark/app
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+
+  spark-worker:
+    build: ./spark_processor
+    container_name: spark-worker
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1g
+    volumes:
+      - ./spark_processor:/opt/spark/app
+
 volumes:
   postgres-data:
