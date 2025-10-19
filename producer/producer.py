@@ -17,12 +17,6 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "raw_trades")
 
 
 def create_kafka_producer(retries=5, delay=5) -> KafkaProducer | None:
-    """
-    Creates a KafkaProducer instance with retry logic for broker availability.
-    Args:
-        retries: Number of retries to connect to the Kafka broker.
-        delay: Delay in seconds between retries.
-    """
     for retry in range(retries):
         try:
             producer = KafkaProducer(
@@ -46,9 +40,6 @@ kafka_producer = create_kafka_producer()
 
 
 def on_message(ws: websocket.WebSocketApp, message: str) -> None:
-    """
-    Callback function to handle incoming messages from the WebSocket.
-    """
     if not kafka_producer:
         logging.error("Kafka producer is not available. Cannot process message.")
         return
@@ -84,23 +75,12 @@ def on_error(ws: websocket.WebSocketApp, error: Exception) -> None:
 def on_close(
     ws: websocket.WebSocketApp, close_status_code: int, close_msg: str
 ) -> None:
-    """
-    Callback function for when the WebSocket connection is closed.
-    Args:
-        ws: WebSocketApp instance.
-        close_status_code: Status code of the close event.
-        close_msg: Message of the close event.
-    """
     logging.warning(
         f"WebSocket connection closed. Status: {close_status_code}, Msg: {close_msg}. Attempting to reconnect..."
     )
 
 
 def on_open(ws: websocket.WebSocketApp) -> None:
-    """
-    Callback function for when the WebSocket connection is opened.
-    Sends the subscription message.
-    """
     subscription_message = {
         "method": "SUBSCRIBE",
         "params": [f"{CRYPTO_PAIR}@trade"],
@@ -111,12 +91,6 @@ def on_open(ws: websocket.WebSocketApp) -> None:
 
 
 def run_producer(retry_delay: int = 5, max_delay: int = 60) -> None:
-    """
-    Runs the producer with an exponential backoff retry loop.
-    Args:
-        retry_delay: Initial delay in seconds.
-        max_delay: Maximum delay in seconds.
-    """
     if not kafka_producer:
         return
 
