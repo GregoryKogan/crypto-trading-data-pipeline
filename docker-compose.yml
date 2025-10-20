@@ -87,5 +87,35 @@ services:
     volumes:
       - ./spark_processor:/opt/spark/app
 
+  spark-submit:
+    build: ./spark_processor
+    container_name: spark-submit
+    depends_on:
+      - spark-master
+      - kafka
+      - postgres
+    environment:
+      - KAFKA_BROKER_URL=kafka:9092
+      - KAFKA_TOPIC=raw_trades
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=crypto_data
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - CHECKPOINT_LOCATION=/opt/spark/app/checkpoint
+    command: [
+      "/opt/spark/bin/spark-submit",
+      "--master", "spark://spark-master:7077",
+      "--jars", 
+      "/opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,
+      /opt/spark/jars/kafka-clients-3.7.0.jar,/opt/spark/jars/postgresql-42.7.3.jar,
+      /opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,
+      /opt/spark/jars/kafka_2.12-3.7.0.jar,
+      /opt/spark/jars/spark-streaming-kafka-0-10_2.12-3.5.1.jar,
+      /opt/spark/jars/commons-pool2-2.12.0.jar",
+      "/opt/spark/app/processor.py"
+    ]
+
 volumes:
   postgres-data:
