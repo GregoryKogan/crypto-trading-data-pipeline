@@ -1,2 +1,4 @@
 .vscode/
 checkpoint/
+airflow/logs/
+airflow/plugins/

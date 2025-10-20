@@ -107,35 +107,67 @@ services:
     volumes:
       - ./spark_processor:/opt/spark/app
 
-  spark-submit:
-    build: ./spark_processor
-    container_name: spark-submit
+  airflow-init:
+    build: ./airflow
+    container_name: airflow-init
     depends_on:
-      - spark-master
-      - kafka
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
-      - KAFKA_BROKER_URL=kafka:9092
-      - KAFKA_TOPIC=raw_trades
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=crypto_data
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - CHECKPOINT_LOCATION=/opt/spark/app/checkpoint
-    command: [
-      "/opt/spark/bin/spark-submit",
-      "--master", "spark://spark-master:7077",
-      "--jars", 
-      "/opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,
-      /opt/spark/jars/kafka-clients-3.7.0.jar,/opt/spark/jars/postgresql-42.7.3.jar,
-      /opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,
-      /opt/spark/jars/kafka_2.12-3.7.0.jar,
-      /opt/spark/jars/spark-streaming-kafka-0-10_2.12-3.5.1.jar,
-      /opt/spark/jars/commons-pool2-2.12.0.jar",
-      "/opt/spark/app/processor.py"
-    ]
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:password@postgres:5432/airflow_db
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+      - AIRFLOW__WEBSERVER__SECRET_KEY=super_secret_key_for_webserver
+    command: >
+      bash -c "
+        echo 'Waiting for database to be ready...' &&
+        airflow db check &&
+        airflow db init &&
+        airflow users create --username admin --password admin --firstname Anonymous --lastname User --role Admin --email admin@example.com
+      "
+
+  airflow-webserver:
+    build: ./airflow
+    container_name: airflow-webserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:password@postgres:5432/airflow_db
+      - AIRFLOW__WEBSERVER__SECRET_KEY=super_secret_key_for_webserver
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+    command: ["airflow", "webserver"]
+
+  airflow-scheduler:
+    build: ./airflow
+    container_name: airflow-scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:password@postgres:5432/airflow_db
+      - AIRFLOW__WEBSERVER__SECRET_KEY=super_secret_key_for_webserver
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+    command: ["airflow", "scheduler"]
 
 volumes:
   postgres-data:

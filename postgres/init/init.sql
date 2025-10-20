@@ -1,3 +1,8 @@
+CREATE DATABASE airflow_db;
+
+
+\c crypto_data;
+
 CREATE TABLE trades_1min_agg (
     window_start    TIMESTAMPTZ NOT NULL,
     window_end      TIMESTAMPTZ NOT NULL,
