@@ -15,12 +15,19 @@ ENV POSTGRES_JDBC_VERSION=42.7.3
 # Download JARs for Kafka and PostgreSQL connectivity
 RUN wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/${SPARK_VERSION}/spark-sql-kafka-0-10_2.12-${SPARK_VERSION}.jar && \
     wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/${KAFKA_CLIENTS_VERSION}/kafka-clients-${KAFKA_CLIENTS_VERSION}.jar && \
-    wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_JDBC_VERSION}/postgresql-${POSTGRES_JDBC_VERSION}.jar
+    wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_JDBC_VERSION}/postgresql-${POSTGRES_JDBC_VERSION}.jar && \
+    wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/${SPARK_VERSION}/spark-token-provider-kafka-0-10_2.12-${SPARK_VERSION}.jar && \
+    wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/kafka/kafka_2.12/${KAFKA_CLIENTS_VERSION}/kafka_2.12-${KAFKA_CLIENTS_VERSION}.jar && \
+    wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/${KAFKA_CLIENTS_VERSION}/kafka-clients-${KAFKA_CLIENTS_VERSION}.jar && \
+    wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/spark/spark-streaming-kafka-0-10_2.12/${SPARK_VERSION}/spark-streaming-kafka-0-10_2.12-${SPARK_VERSION}.jar && \
+    wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.12.0/commons-pool2-2.12.0.jar
 
 RUN mkdir -p /opt/spark/app
 
 COPY requirements.txt /opt/spark/app/requirements.txt
 RUN pip install --no-cache-dir -r /opt/spark/app/requirements.txt
+
+COPY processor.py /opt/spark/app/processor.py
 
 RUN chown -R spark:spark /opt/spark/app
 
