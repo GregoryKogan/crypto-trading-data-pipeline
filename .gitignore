@@ -1,4 +1,5 @@
 .vscode/
+__pycache__/
 checkpoint/
 airflow/logs/
 airflow/plugins/
