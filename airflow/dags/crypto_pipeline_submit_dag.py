@@ -21,7 +21,7 @@ with DAG(
     submit_spark_job = SparkSubmitOperator(
         task_id="submit_spark_streaming_job",
         application="/opt/spark/app/processor.py",
-        conn_id="spark_default",
+        conn_id="crypto_pipeline_spark",
         verbose=True,
         conf={"spark.master": "spark://spark-master:7077"},
         env_vars={

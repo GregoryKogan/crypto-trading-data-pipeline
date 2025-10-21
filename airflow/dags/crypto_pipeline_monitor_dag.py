@@ -21,7 +21,7 @@ with DAG(
 ) as dag:
     check_data_freshness = SQLCheckOperator(
         task_id="check_data_freshness",
-        conn_id="postgres_default",  # Connection configured in Airflow UI
+        conn_id="crypto_pipeline_postgres",
         sql="""
         SELECT COUNT(*) FROM trades_1min_agg WHERE window_start >= NOW() - INTERVAL '3 minutes';
         """,
