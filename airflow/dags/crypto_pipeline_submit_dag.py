@@ -3,7 +3,7 @@ from __future__ import annotations
 import pendulum
 
 from airflow.models.dag import DAG
-from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.providers.docker.operators.docker import DockerOperator
 
 with DAG(
     dag_id="crypto_pipeline_submit_dag",
@@ -18,13 +18,31 @@ with DAG(
     It should be triggered manually to start the real-time data processing pipeline.
     """,
 ) as dag:
-    submit_spark_job = SparkSubmitOperator(
+    jar_list = (
+        "/opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,"
+        "/opt/spark/jars/kafka-clients-3.7.0.jar,"
+        "/opt/spark/jars/postgresql-42.7.3.jar,"
+        "/opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,"
+        "/opt/spark/jars/commons-pool2-2.12.0.jar,"
+        "/opt/spark/jars/spark-streaming-kafka-0-10_2.12-3.5.1.jar,"
+        "/opt/spark/jars/kafka_2.12-3.7.0.jar"
+    )
+
+    submit_spark_job = DockerOperator(
         task_id="submit_spark_streaming_job",
-        application="/opt/spark/app/processor.py",
-        conn_id="crypto_pipeline_spark",
-        verbose=True,
-        conf={"spark.master": "spark://spark-master:7077"},
-        env_vars={
+        image="crypto-trading-data-pipeline-spark-master:latest",
+        command=[
+            "spark-submit",
+            "--master",
+            "spark://spark-master:7077",
+            "--jars",
+            jar_list,
+            "--name",
+            "CryptoAnalytics",
+            "--verbose",
+            "/opt/spark/app/processor.py",
+        ],
+        environment={
             "KAFKA_BROKER_URL": "kafka:9092",
             "KAFKA_TOPIC": "raw_trades",
             "POSTGRES_HOST": "postgres",
@@ -34,9 +52,7 @@ with DAG(
             "POSTGRES_PASSWORD": "password",
             "CHECKPOINT_LOCATION": "/opt/spark/app/checkpoint",
         },
-        jars="/opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,\
-            /opt/spark/jars/kafka-clients-3.7.0.jar,\
-            /opt/spark/jars/postgresql-42.7.3.jar,\
-            /opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,\
-            /opt/spark/jars/commons-pool2-2.12.0.jar",
+        network_mode="crypto-trading-data-pipeline_default",
+        auto_remove=True,
+        docker_url="unix://var/run/docker.sock",
     )
